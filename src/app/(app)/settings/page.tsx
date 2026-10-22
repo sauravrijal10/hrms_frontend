@@ -6,6 +6,7 @@ import { api, toApiError, type ApiError } from "@/lib/api";
 import { humanize } from "@/lib/format";
 import { useTimezones, withZone } from "@/lib/timezones";
 import { DAYS_OF_WEEK, type AllocationResult, type DayOfWeek, type Tenant } from "@/lib/types";
+import { EmailSettingsCard } from "@/components/EmailSettingsForm";
 import { HrOnly } from "@/components/HrOnly";
 import { useSession, useToast } from "@/components/session";
 import { Alert, Button, Card, Checkbox, Field, FormError, Input, PageHeader, Select } from "@/components/ui";
@@ -15,8 +16,9 @@ export default function SettingsPage() {
     <HrOnly>
       <PageHeader title="Company settings" />
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="space-y-6 lg:col-span-2">
           <CompanyForm />
+          <EmailSettingsCard />
         </div>
         <AllocateCard />
       </div>

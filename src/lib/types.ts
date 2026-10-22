@@ -43,6 +43,44 @@ export interface Tenant {
   active: boolean;
 }
 
+export type SmtpSecurity = "STARTTLS" | "SSL" | "NONE";
+
+/** GET/PUT /tenant/email-settings (HR only). The saved SMTP password is never returned. */
+export interface EmailSettings {
+  senderName: string | null;
+  replyTo: string | null;
+  smtpEnabled: boolean;
+  smtpHost: string | null;
+  smtpPort: number | null;
+  smtpSecurity: SmtpSecurity | null;
+  smtpUsername: string | null;
+  smtpPasswordSet: boolean;
+  smtpFromEmail: string | null;
+  /** Last failure of the company's own mail server; emails then went out from the platform address. */
+  lastError: string | null;
+  lastErrorAt: string | null;
+  companyName: string;
+  platformFromAddress: string;
+}
+
+/** Body for PUT /tenant/email-settings and POST /tenant/email-settings/test. Blank password = keep saved. */
+export interface EmailSettingsInput {
+  senderName: string | null;
+  replyTo: string | null;
+  smtpEnabled: boolean;
+  smtpHost: string | null;
+  smtpPort: number | null;
+  smtpSecurity: SmtpSecurity | null;
+  smtpUsername: string | null;
+  smtpPassword: string | null;
+  smtpFromEmail: string | null;
+}
+
+export interface TestEmailResult {
+  sentTo: string;
+  via: string;
+}
+
 export interface Department {
   id: string;
   name: string;

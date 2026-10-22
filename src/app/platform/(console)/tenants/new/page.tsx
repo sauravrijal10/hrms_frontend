@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { api, toApiError, type ApiError } from "@/lib/api";
-import { useTimezones, withZone } from "@/lib/timezones";
 import type { TenantSummary } from "@/lib/types";
 import { useToast } from "@/components/session";
-import { Button, Card, Field, FormError, Input, PageHeader, Select } from "@/components/ui";
+import { TimezoneSelect } from "@/components/TimezoneSelect";
+import { Button, Card, Field, FormError, Input, PageHeader } from "@/components/ui";
 
 function slugify(name: string) {
   return name
@@ -20,7 +20,6 @@ function slugify(name: string) {
 export default function NewCompanyPage() {
   const router = useRouter();
   const toast = useToast();
-  const { zones } = useTimezones();
   const [form, setForm] = useState({
     companyName: "",
     slug: "",
@@ -89,11 +88,7 @@ export default function NewCompanyPage() {
               />
             </Field>
             <Field label="Timezone" error={fe.timezone}>
-              <Select value={form.timezone} onChange={set("timezone")}>
-                {withZone(zones, form.timezone).map((tz) => (
-                  <option key={tz}>{tz}</option>
-                ))}
-              </Select>
+              <TimezoneSelect value={form.timezone} onChange={(timezone) => setForm((f) => ({ ...f, timezone }))} />
             </Field>
           </div>
         </Card>
