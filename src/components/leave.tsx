@@ -62,10 +62,13 @@ export function LeaveRequestTable({
   requests,
   showEmployee = false,
   actions,
+  details,
 }: {
   requests: LeaveRequest[];
   showEmployee?: boolean;
   actions?: (r: LeaveRequest) => ReactNode;
+  /** Extra lines at the end of the Details column, e.g. who else is off (approval inbox). */
+  details?: (r: LeaveRequest) => ReactNode;
 }) {
   return (
     <Table>
@@ -103,6 +106,7 @@ export function LeaveRequestTable({
                 </p>
               )}
               {r.decisionComment && <p className="mt-0.5 italic">“{r.decisionComment}”</p>}
+              {details?.(r)}
             </Td>
             {actions && (
               <Td className="text-right whitespace-nowrap">

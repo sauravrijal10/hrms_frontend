@@ -170,6 +170,53 @@ export interface LeaveRequest {
   createdAt: string;
 }
 
+/** GET /leave-calendar: who is off between `from` and `to`. */
+export interface LeaveCalendar {
+  from: string;
+  to: string;
+  /** COMPANY for HR (everyone), TEAM for everyone else. */
+  scope: "COMPANY" | "TEAM";
+  weekendDays: DayOfWeek[];
+  holidays: Holiday[];
+  people: CalendarPerson[];
+  leaves: CalendarLeave[];
+}
+
+export interface CalendarPerson {
+  employeeId: string;
+  fullName: string;
+  designation: string | null;
+  departmentName: string | null;
+  self: boolean;
+}
+
+/** leaveType and reason are null unless the viewer is the employee, their approver or HR. */
+export interface CalendarLeave {
+  id: string;
+  employeeId: string;
+  startDate: string;
+  endDate: string;
+  halfDay: boolean;
+  days: number;
+  status: "APPROVED" | "PENDING";
+  leaveType: string | null;
+  reason: string | null;
+  canDecide: boolean;
+}
+
+/** GET /leave-calendar/approval-overlaps: teammates also off during each pending request. */
+export interface ApprovalOverlap {
+  requestId: string;
+  others: {
+    employeeId: string;
+    employeeName: string;
+    startDate: string;
+    endDate: string;
+    halfDay: boolean;
+    status: "APPROVED" | "PENDING";
+  }[];
+}
+
 export interface AllocationResult {
   year: number;
   balancesCreated: number;
