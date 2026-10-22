@@ -8,6 +8,7 @@ import { formatDate, formatDays, humanize, roleLabel } from "@/lib/format";
 import type { Employee, LeaveBalance } from "@/lib/types";
 import { useSession, useToast } from "@/components/session";
 import { EmployeeForm } from "@/components/EmployeeForm";
+import { SalaryCard } from "@/components/SalaryCard";
 import {
   Avatar,
   Badge,
@@ -69,6 +70,7 @@ export default function EmployeePage() {
               />
               <div className="space-y-6">
                 <EmployeeDetails employee={e} fullAccess={isHr || e.id === user.employeeId} />
+                {isHr && <SalaryCard employeeId={e.id} employeeName={e.fullName} />}
                 <Balances employeeId={e.id} canAdjust={isHr} />
               </div>
             </>
@@ -118,6 +120,7 @@ function EmployeeDetails({ employee: e, fullAccess }: { employee: Employee; full
           ["Department", e.departmentName],
           ["Manager", e.managerName],
           ["Joined", formatDate(e.joinDate)],
+          ...(e.exitDate ? ([["Last working day", formatDate(e.exitDate)]] as [string, ReactNode][]) : []),
           ...personal,
         ]}
       />

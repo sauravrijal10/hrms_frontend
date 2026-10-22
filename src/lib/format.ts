@@ -54,3 +54,14 @@ export function blankToNull(v: string): string | null {
   const t = v.trim();
   return t === "" ? null : t;
 }
+
+/** "NPR 52,645.00". The currency code is shown as-is, so any company currency works. */
+export function formatMoney(amount: number | null | undefined, currency: string): string {
+  if (amount === null || amount === undefined) return "—";
+  return `${currency} ${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** "November 2026" */
+export function monthLabel(year: number, month: number): string {
+  return new Date(year, month - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+}

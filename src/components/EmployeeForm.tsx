@@ -39,6 +39,7 @@ function initialState(e?: Employee) {
     bankName: e?.bankName ?? "",
     bankAccountNumber: e?.bankAccountNumber ?? "",
     status: (e?.status ?? "ACTIVE") as EmployeeStatus,
+    exitDate: e?.exitDate ?? "",
     roles: (e?.roles ?? ["EMPLOYEE"]) as Role[],
     createLogin: true,
     password: "",
@@ -97,7 +98,7 @@ export function EmployeeForm({
       bankAccountNumber: blankToNull(form.bankAccountNumber),
     };
     const payload: EmployeePayload = editing
-      ? { ...common, status: form.status, roles: employee.hasLogin ? form.roles : null }
+      ? { ...common, status: form.status, exitDate: form.exitDate || null, roles: employee.hasLogin ? form.roles : null }
       : {
           ...common,
           employeeCode: blankToNull(form.employeeCode),
@@ -205,6 +206,15 @@ export function EmployeeForm({
                   </option>
                 ))}
               </Select>
+            </Field>
+          )}
+          {editing && (
+            <Field
+              label="Last working day"
+              error={fe.exitDate}
+              hint="For leavers: their final month's pay covers days up to this date"
+            >
+              <Input type="date" value={form.exitDate} onChange={set("exitDate")} min={form.joinDate || undefined} />
             </Field>
           )}
         </div>

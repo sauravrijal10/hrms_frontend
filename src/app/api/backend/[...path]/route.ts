@@ -32,10 +32,13 @@ async function forward(request: NextRequest, ctx: { params: Promise<{ path: stri
   }
 
   const body = res.status === 204 || res.status === 304 ? null : await res.arrayBuffer();
-  return new NextResponse(body, {
-    status: res.status,
-    headers: res.headers.get("Content-Type") ? { "Content-Type": res.headers.get("Content-Type")! } : undefined,
-  });
+  const out = new Headers();
+  // Content-Disposition carries the file name of downloads (payslip PDFs, CSV exports).
+  for (const name of ["Content-Type", "Content-Disposition"]) {
+    const value = res.headers.get(name);
+    if (value) out.set(name, value);
+  }
+  return new NextResponse(body, { status: res.status, headers: out });
 }
 
 export const GET = forward;

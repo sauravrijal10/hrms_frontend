@@ -27,6 +27,8 @@ const ICONS = {
   department: icon("M4 6h16M4 12h16M4 18h10"),
   types: icon("M7 7h.01M3 12.5V5a2 2 0 0 1 2-2h7.5l8.5 8.5-9.5 9.5L3 12.5Z"),
   requests: icon("M9 5h10M9 12h10M9 19h10M4.5 5h.01M4.5 12h.01M4.5 19h.01"),
+  payroll: icon("M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 16.5v-9ZM12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM6 9.5v.01M18 14.5v.01"),
+  payslip: icon("M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm7 0v5h5M9 13h6M9 17h6"),
   settings: icon("M10.3 4.3a1.7 1.7 0 0 1 3.4 0 1.7 1.7 0 0 0 2.6 1.1 1.7 1.7 0 0 1 2.4 2.4 1.7 1.7 0 0 0 1 2.6 1.7 1.7 0 0 1 0 3.3 1.7 1.7 0 0 0-1 2.6 1.7 1.7 0 0 1-2.4 2.4 1.7 1.7 0 0 0-2.6 1 1.7 1.7 0 0 1-3.4 0 1.7 1.7 0 0 0-2.6-1 1.7 1.7 0 0 1-2.4-2.4 1.7 1.7 0 0 0-1-2.6 1.7 1.7 0 0 1 0-3.3 1.7 1.7 0 0 0 1-2.6 1.7 1.7 0 0 1 2.4-2.4 1.7 1.7 0 0 0 2.6-1.1ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"),
 };
 
@@ -43,6 +45,7 @@ export function Shell({ children }: { children: ReactNode }) {
         ...(isApprover ? [{ href: "/approvals", label: "Approvals", icon: ICONS.inbox }] : []),
         ...(isApprover && !isHr ? [{ href: "/team", label: "My team", icon: ICONS.team }] : []),
         ...(user.employeeId || isHr ? [{ href: "/calendar", label: "Team calendar", icon: ICONS.calendar }] : []),
+        ...(user.employeeId ? [{ href: "/payslips", label: "My payslips", icon: ICONS.payslip }] : []),
         { href: "/holidays", label: "Holidays", icon: ICONS.holiday },
         { href: "/profile", label: "Profile", icon: ICONS.user },
       ],
@@ -56,6 +59,7 @@ export function Shell({ children }: { children: ReactNode }) {
               { href: "/departments", label: "Departments", icon: ICONS.department },
               { href: "/leave-types", label: "Leave types", icon: ICONS.types },
               { href: "/leave-requests", label: "All leave requests", icon: ICONS.requests },
+              { href: "/payroll", label: "Payroll", icon: ICONS.payroll },
               { href: "/settings", label: "Company settings", icon: ICONS.settings },
             ],
           },

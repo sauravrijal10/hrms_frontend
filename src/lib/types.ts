@@ -115,6 +115,8 @@ export interface Employee {
   nationalId?: string | null;
   bankName?: string | null;
   bankAccountNumber?: string | null;
+  /** Last working day of a leaver; their final month's pay is pro-rated to it. */
+  exitDate?: string | null;
 }
 
 export interface LeaveType {
@@ -271,4 +273,175 @@ export interface TenantAdmin {
   email: string;
   active: boolean;
   createdAt: string;
+}
+
+// ---------------------------------------------------------------- payroll
+
+export type ComponentKind = "EARNING" | "DEDUCTION";
+export type Calculation = "FIXED" | "PERCENT_OF_BASIC";
+export type ContributionBase = "BASIC" | "GROSS";
+export type FilingStatus = "SINGLE" | "MARRIED";
+export type RunStatus = "DRAFT" | "FINALIZED" | "PAID";
+export type LineCategory = "EARNING" | "DEDUCTION" | "EMPLOYEE_CONTRIBUTION" | "EMPLOYER_CONTRIBUTION" | "TAX";
+
+/** A tax band: yearly income up to `upTo` (null = everything above) is taxed at `rate` %. */
+export interface TaxSlabInput {
+  upTo: number | null;
+  rate: number;
+}
+
+export interface PayrollSettings {
+  currency: string;
+  marriedSlabsEnabled: boolean;
+  singleSlabs: TaxSlabInput[];
+  marriedSlabs: TaxSlabInput[];
+}
+
+export interface PayComponent {
+  id: string;
+  code: string;
+  name: string;
+  kind: ComponentKind;
+  calculation: Calculation;
+  taxable: boolean;
+  active: boolean;
+}
+
+export interface Contribution {
+  id: string;
+  code: string;
+  name: string;
+  employeeRate: number;
+  employerRate: number;
+  base: ContributionBase;
+  reducesTaxableIncome: boolean;
+  active: boolean;
+}
+
+export interface SalaryItem {
+  componentId: string;
+  code: string;
+  name: string;
+  kind: ComponentKind;
+  calculation: Calculation;
+  /** Amount (FIXED) or percent of basic. */
+  value: number;
+  monthlyAmount: number;
+}
+
+export interface Salary {
+  id: string;
+  effectiveFrom: string;
+  basic: number;
+  filingStatus: FilingStatus;
+  items: SalaryItem[];
+  monthlyGross: number;
+  note: string | null;
+  changedBy: string | null;
+  changedAt: string;
+}
+
+export interface EmployeeSalaryOverview {
+  currency: string;
+  /** In force today; null if none yet. */
+  current: Salary | null;
+  history: Salary[];
+}
+
+export interface RunTotals {
+  employees: number;
+  gross: number;
+  deductions: number;
+  tax: number;
+  netPay: number;
+  employerContributions: number;
+}
+
+export interface PayrollRunSummary {
+  id: string;
+  year: number;
+  month: number;
+  status: RunStatus;
+  currency: string;
+  totals: RunTotals;
+  createdBy: string | null;
+  createdAt: string;
+  finalizedBy: string | null;
+  finalizedAt: string | null;
+  paidBy: string | null;
+  paidAt: string | null;
+}
+
+export interface PayslipSummary {
+  id: string;
+  employeeId: string;
+  employeeCode: string;
+  employeeName: string;
+  departmentName: string | null;
+  payableDays: number;
+  workingDays: number;
+  unpaidLeaveDays: number;
+  gross: number;
+  totalDeductions: number;
+  tax: number;
+  netPay: number;
+  hasOneOffs: boolean;
+}
+
+export interface PayrollRunDetail {
+  run: PayrollRunSummary;
+  payslips: PayslipSummary[];
+  /** Employees left out because they have no salary for that month. */
+  missingSalary: string[];
+}
+
+export interface PayslipLine {
+  id: string;
+  category: LineCategory;
+  code: string | null;
+  name: string;
+  /** Earnings: the full-month amount before pro-rating. */
+  fullAmount: number | null;
+  amount: number;
+  taxable: boolean;
+  oneOff: boolean;
+}
+
+export interface PayslipDetail {
+  id: string;
+  runId: string;
+  year: number;
+  month: number;
+  runStatus: RunStatus;
+  currency: string;
+  companyName: string;
+  employeeId: string;
+  employeeCode: string;
+  employeeName: string;
+  designation: string | null;
+  departmentName: string | null;
+  bankName: string | null;
+  bankAccountNumber: string | null;
+  filingStatus: FilingStatus;
+  workingDays: number;
+  employedDays: number;
+  unpaidLeaveDays: number;
+  payableDays: number;
+  lines: PayslipLine[];
+  gross: number;
+  totalDeductions: number;
+  taxableIncome: number;
+  tax: number;
+  netPay: number;
+  employerContributions: number;
+}
+
+export interface MyPayslip {
+  id: string;
+  year: number;
+  month: number;
+  currency: string;
+  gross: number;
+  netPay: number;
+  runStatus: RunStatus;
 }
