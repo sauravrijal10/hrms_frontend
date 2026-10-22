@@ -226,7 +226,7 @@ function AddAdminForm({ tenantId, onClose, onDone }: { tenantId: string; onClose
       <Field label="Email" error={fe.email} required>
         <Input type="email" value={form.email} onChange={set("email")} maxLength={150} required />
       </Field>
-      <Field label="Initial password" error={fe.password} hint="At least 8 characters" required>
+      <Field label="Initial password" error={fe.password} hint="At least 8 characters. It's emailed to them, and they must choose their own when they first sign in." required>
         <Input
           type="password"
           value={form.password}
@@ -277,7 +277,7 @@ function ResetPasswordForm({ tenantId, admin, onClose }: { tenantId: string; adm
   return (
     <form className="space-y-4" onSubmit={submit}>
       <FormError error={error} />
-      <Field label="New password" error={error?.fieldErrors.newPassword} hint="At least 8 characters. Share it securely." required>
+      <Field label="New password" error={error?.fieldErrors.newPassword} hint="At least 8 characters. Share it securely; they must choose their own when they next sign in." required>
         <Input
           type="password"
           value={password}

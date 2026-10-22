@@ -245,7 +245,7 @@ export function EmployeeForm({
             <Field
               label="Initial password"
               error={fe.password}
-              hint="At least 8 characters. Share it securely; they can change it from their profile."
+              hint="At least 8 characters. It's emailed to them, and they must choose their own when they first sign in."
               required
               className="max-w-sm"
             >

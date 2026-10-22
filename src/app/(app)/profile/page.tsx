@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { api, toApiError, useApi, type ApiError } from "@/lib/api";
 import { blankToNull, formatDate, humanize, roleLabel } from "@/lib/format";
 import type { Employee } from "@/lib/types";
+import { postAuth } from "@/components/AuthForm";
 import { useSession, useToast } from "@/components/session";
 import {
   Alert,
@@ -168,7 +169,8 @@ function ChangePasswordForm() {
     setSaving(true);
     setError(null);
     try {
-      await api("/auth/change-password", { body: { currentPassword, newPassword } });
+      // Through our route handler: the API returns a fresh token, which belongs in the httpOnly cookie.
+      await postAuth("/api/auth/change-password", { currentPassword, newPassword });
       toast("Password changed");
       setCurrent("");
       setNew("");

@@ -25,6 +25,8 @@ export interface AuthUser {
   employeeId: string | null;
   email: string;
   roles: Role[];
+  /** Someone else chose this user's password; they must pick their own before using the app. */
+  passwordChangeRequired: boolean;
 }
 
 /** POST /auth/login, POST /tenants/register (token stripped by our route handlers). */

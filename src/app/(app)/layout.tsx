@@ -13,6 +13,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (me.status === 401) redirect("/api/auth/logout?reason=expired");
   if (!me.data) throw new Error("The HRMS API is not reachable. Is the backend running?");
   const user = me.data;
+  // The API refuses everything else until the temporary password is replaced.
+  if (user.passwordChangeRequired) redirect("/change-password");
 
   const [employee, tenant, team] = await Promise.all([
     user.employeeId ? serverFetch<Employee>("/employees/me", token) : Promise.resolve({ status: 404, data: undefined }),

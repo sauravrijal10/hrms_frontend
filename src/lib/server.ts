@@ -29,19 +29,21 @@ export function problem(status: number, detail: string) {
 }
 
 /**
- * Forwards a login/register call to the API. On success the token goes into an httpOnly cookie
- * and everything except the token is returned to the browser.
+ * Forwards a login/register/change-password call to the API. On success the (new) token goes into
+ * an httpOnly cookie and everything except the token is returned to the browser.
+ * `token` is sent for calls made by a signed-in user, such as changing the password.
  */
 export async function authenticate(
   path: string,
   body: string,
   cookieName: string = TOKEN_COOKIE,
+  token?: string,
 ): Promise<NextResponse> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api/v1${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body,
       cache: "no-store",
     });

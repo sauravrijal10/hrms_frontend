@@ -104,7 +104,7 @@ export default function NewCompanyPage() {
             <Field label="Email" error={fe.adminEmail} required>
               <Input type="email" value={form.adminEmail} onChange={set("adminEmail")} maxLength={150} required />
             </Field>
-            <Field label="Initial password" error={fe.adminPassword} hint="At least 8 characters. Share it securely." required>
+            <Field label="Initial password" error={fe.adminPassword} hint="At least 8 characters. It's emailed to the admin, who must choose their own when they first sign in." required>
               <Input
                 type="password"
                 value={form.adminPassword}
