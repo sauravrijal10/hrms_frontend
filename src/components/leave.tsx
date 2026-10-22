@@ -49,6 +49,11 @@ export function BalanceCards({ balances }: { balances: LeaveBalance[] }) {
                 <dd className="font-medium text-slate-900">{formatDays(b.pending)}</dd>
               </div>
             </dl>
+            {b.proRated && (
+              <p className="mt-3 border-t border-slate-100 pt-2 text-xs text-slate-500">
+                Pro-rated: {formatDays(b.allocated)} of {formatDays(b.fullYearDays)} days, as you joined during {b.year}.
+              </p>
+            )}
           </div>
         );
       })}

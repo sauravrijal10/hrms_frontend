@@ -82,6 +82,7 @@ function LeaveTypes() {
                   <Th>Days / year</Th>
                   <Th>Max carry forward</Th>
                   <Th>Paid</Th>
+                  <Th>New joiners</Th>
                   <Th>Status</Th>
                   <Th />
                 </tr>
@@ -97,6 +98,7 @@ function LeaveTypes() {
                     <Td>{formatDays(t.defaultDays)}</Td>
                     <Td>{formatDays(t.maxCarryForward)}</Td>
                     <Td>{t.paid ? "Paid" : "Unpaid"}</Td>
+                    <Td>{t.prorate ? "Pro-rated" : "Full year"}</Td>
                     <Td>{t.active ? <Badge tone="green">Active</Badge> : <Badge>Inactive</Badge>}</Td>
                     <Td className="text-right whitespace-nowrap">
                       <Button size="sm" variant="ghost" onClick={() => setEditing({ type: t })}>
@@ -174,6 +176,7 @@ function LeaveTypeForm({ type, onClose, onDone }: { type?: LeaveType; onClose: (
     maxCarryForward: type ? String(type.maxCarryForward) : "0",
     paid: type?.paid ?? true,
     active: type?.active ?? true,
+    prorate: type?.prorate ?? true,
   });
   const [error, setError] = useState<ApiError | null>(null);
   const [saving, setSaving] = useState(false);
@@ -191,6 +194,7 @@ function LeaveTypeForm({ type, onClose, onDone }: { type?: LeaveType; onClose: (
       maxCarryForward: Number(form.maxCarryForward),
       paid: form.paid,
       active: form.active,
+      prorate: form.prorate,
     };
     try {
       if (type) await api(`/leave-types/${type.id}`, { method: "PUT", body });
@@ -264,6 +268,18 @@ function LeaveTypeForm({ type, onClose, onDone }: { type?: LeaveType; onClose: (
       <div className="flex gap-6">
         <Checkbox label="Paid leave" checked={form.paid} onChange={(e) => setForm({ ...form, paid: e.target.checked })} />
         <Checkbox label="Active" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+      </div>
+      <div>
+        <Checkbox
+          label="Pro-rate for mid-year joiners"
+          checked={form.prorate}
+          onChange={(e) => setForm({ ...form, prorate: e.target.checked })}
+        />
+        <p className="mt-1 ml-6 text-xs text-slate-500">
+          Someone joining during the year gets a share of the yearly days for the months they work (joining on or
+          before the 15th counts that month), rounded to the nearest half day. For example, 18 days and a 10 July
+          start gives 9 days. Changing this only affects balances created from now on.
+        </p>
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="secondary" onClick={onClose}>

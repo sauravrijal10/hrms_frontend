@@ -126,6 +126,8 @@ export interface LeaveType {
   maxCarryForward: number;
   paid: boolean;
   active: boolean;
+  /** Mid-year joiners get a share of defaultDays based on the months they work. */
+  prorate: boolean;
 }
 
 export interface LeaveBalance {
@@ -140,6 +142,10 @@ export interface LeaveBalance {
   used: number;
   pending: number;
   available: number;
+  /** The leave type's days for a full year. */
+  fullYearDays: number;
+  /** The employee joined this year, so `allocated` is their share of fullYearDays. */
+  proRated: boolean;
 }
 
 export interface Holiday {

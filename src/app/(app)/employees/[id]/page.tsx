@@ -169,7 +169,14 @@ function Balances({ employeeId, canAdjust }: { employeeId: string; canAdjust: bo
               {data.map((b) => (
                 <tr key={b.id}>
                   <Td className="font-medium text-slate-900">{b.leaveTypeName}</Td>
-                  <Td>{formatDays(b.allocated)}</Td>
+                  <Td>
+                    {formatDays(b.allocated)}
+                    {b.proRated && (
+                      <span className="ml-1 text-xs text-slate-500" title="Joined during this year">
+                        (pro-rated from {formatDays(b.fullYearDays)})
+                      </span>
+                    )}
+                  </Td>
                   <Td>{formatDays(b.carriedForward)}</Td>
                   <Td>{formatDays(b.used)}</Td>
                   <Td>{formatDays(b.pending)}</Td>
