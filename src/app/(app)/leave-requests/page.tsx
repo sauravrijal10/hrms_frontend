@@ -100,6 +100,7 @@ function LeaveRequests() {
         </DataState>
       </Card>
       <DecisionDialog
+        isHr
         decision={decision}
         onClose={() => setDecision(null)}
         onDone={() => {

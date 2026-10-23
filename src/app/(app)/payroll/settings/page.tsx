@@ -46,11 +46,62 @@ export default function PayrollSettingsPage() {
         description="Your company's own pay rules. Changes apply to payroll you calculate or recalculate from now on; finalized payslips never change."
       />
       <div className="space-y-6">
+        <ApprovalCard />
         <TaxSettingsCard />
         <ComponentsCard />
         <ContributionsCard />
       </div>
     </HrOnly>
+  );
+}
+
+// ---------------------------------------------------------------- second approval
+
+/** Maker-checker: a run is submitted, and a different HR admin approves it before payslips go out. */
+function ApprovalCard() {
+  const toast = useToast();
+  const settings = useApi<PayrollSettings>("/payroll/settings");
+  const [error, setError] = useState<ApiError | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function toggle(on: boolean) {
+    if (!settings.data) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await api("/payroll/settings", { method: "PUT", body: { ...settings.data, finalizeApprovalRequired: on } });
+      toast(on ? "Payroll now needs a second approval" : "Second approval turned off");
+      settings.reload();
+    } catch (e) {
+      setError(toApiError(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card
+      title="Payroll approval"
+      description="Have a second person check each month's payroll before payslips are sent."
+    >
+      {!settings.data ? (
+        <Loading />
+      ) : (
+        <div className="space-y-3">
+          <FormError error={error} />
+          <Checkbox
+            label={<span className="font-medium">Require a second HR admin to approve payroll</span>}
+            checked={settings.data.finalizeApprovalRequired}
+            disabled={saving}
+            onChange={(e) => toggle(e.target.checked)}
+          />
+          <p className="ml-6 text-xs text-slate-500">
+            The HR admin who prepares a payroll submits it for approval. Another HR admin then approves it (which finalizes
+            it and emails payslips) or sends it back with a note. Needs at least two HR admins.
+          </p>
+        </div>
+      )}
+    </Card>
   );
 }
 

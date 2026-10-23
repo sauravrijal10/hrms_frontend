@@ -6,10 +6,17 @@ import { useState, type FormEvent } from "react";
 import { api, toApiError, useApi, type ApiError } from "@/lib/api";
 import { downloadFile } from "@/lib/download";
 import { formatDateTime, formatDays, formatMoney, monthLabel } from "@/lib/format";
-import type { ComponentKind, PayrollRunDetail, PayslipDetail, PayslipLine, PayslipSummary } from "@/lib/types";
+import type {
+  ComponentKind,
+  PayrollRunDetail,
+  PayrollSettings,
+  PayslipDetail,
+  PayslipLine,
+  PayslipSummary,
+} from "@/lib/types";
 import { HrOnly } from "@/components/HrOnly";
 import { PayslipView, RunStatusBadge } from "@/components/payroll";
-import { useToast } from "@/components/session";
+import { useSession, useToast } from "@/components/session";
 import {
   Alert,
   Badge,
@@ -26,6 +33,7 @@ import {
   Select,
   Table,
   Td,
+  Textarea,
   Th,
 } from "@/components/ui";
 
@@ -33,9 +41,13 @@ export default function PayrollRunPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const toast = useToast();
+  const { user } = useSession();
   const detail = useApi<PayrollRunDetail>(`/payroll/runs/${id}`);
+  const settings = useApi<PayrollSettings>("/payroll/settings");
+  const approvalRequired = settings.data?.finalizeApprovalRequired ?? false;
   const [busy, setBusy] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<"finalize" | "delete" | null>(null);
+  const [confirm, setConfirm] = useState<"finalize" | "delete" | "submit" | "approve" | "sendBack" | null>(null);
+  const [note, setNote] = useState("");
   const [openPayslip, setOpenPayslip] = useState<string | null>(null);
 
   async function action(name: string, run: () => Promise<unknown>, success: string) {
@@ -68,6 +80,8 @@ export default function PayrollRunPage() {
       <DataState data={detail.data} error={detail.error}>
         {({ run, payslips, missingSalary }) => {
           const draft = run.status === "DRAFT";
+          const pending = run.status === "PENDING_APPROVAL";
+          const iSubmitted = pending && run.submittedBy?.toLowerCase() === user.email.toLowerCase();
           const money = (n: number) => formatMoney(n, run.currency);
           return (
             <>
@@ -78,7 +92,9 @@ export default function PayrollRunPage() {
                     ? `Paid · marked by ${run.paidBy} on ${formatDateTime(run.paidAt)}`
                     : run.status === "FINALIZED"
                       ? `Finalized by ${run.finalizedBy} on ${formatDateTime(run.finalizedAt)}. Payslips were sent to employees.`
-                      : "Draft: nothing is visible to employees yet. Recalculate after changing salaries, leave or settings."
+                      : pending
+                        ? "Waiting for a second HR admin's approval. Payslips are locked and not visible to employees yet."
+                        : "Draft: nothing is visible to employees yet. Recalculate after changing salaries, leave or settings."
                 }
                 actions={
                   <>
@@ -102,11 +118,47 @@ export default function PayrollRunPage() {
                         <Button size="sm" variant="ghost" onClick={() => setConfirm("delete")}>
                           Delete draft
                         </Button>
-                        <Button size="sm" onClick={() => setConfirm("finalize")} disabled={payslips.length === 0}>
-                          Finalize
-                        </Button>
+                        {approvalRequired ? (
+                          <Button size="sm" onClick={() => setConfirm("submit")} disabled={payslips.length === 0}>
+                            Submit for approval
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => setConfirm("finalize")}
+                            disabled={payslips.length === 0 || settings.data === undefined}
+                          >
+                            Finalize
+                          </Button>
+                        )}
                       </>
                     )}
+                    {pending &&
+                      (iSubmitted ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          loading={busy === "withdraw"}
+                          onClick={() =>
+                            action(
+                              "withdraw",
+                              () => api(`/payroll/runs/${id}/send-back`, { method: "POST", body: {} }),
+                              "Withdrawn; the payroll is a draft again",
+                            )
+                          }
+                        >
+                          Withdraw
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" variant="secondary" onClick={() => setConfirm("sendBack")}>
+                            Send back
+                          </Button>
+                          <Button size="sm" onClick={() => setConfirm("approve")}>
+                            Approve and finalize
+                          </Button>
+                        </>
+                      ))}
                     {run.status === "FINALIZED" && (
                       <Button
                         size="sm"
@@ -120,7 +172,28 @@ export default function PayrollRunPage() {
                 }
               />
 
-              {draft && missingSalary.length > 0 && (
+              {pending && (
+                <div className="mb-4">
+                  <Alert kind="info">
+                    Submitted for approval by <strong className="font-semibold">{run.submittedBy}</strong> on{" "}
+                    {formatDateTime(run.submittedAt)}.{" "}
+                    {iSubmitted
+                      ? "Another HR admin has to approve it. You can withdraw it to make changes."
+                      : "Review the payslips, then approve to finalize and send them, or send it back with a note."}
+                  </Alert>
+                </div>
+              )}
+              {draft && run.returnedBy && (
+                <div className="mb-4">
+                  <Alert kind="error">
+                    Sent back to draft by <strong className="font-semibold">{run.returnedBy}</strong> on{" "}
+                    {formatDateTime(run.returnedAt)}
+                    {run.returnNote ? <>: “{run.returnNote}”</> : "."}
+                  </Alert>
+                </div>
+              )}
+
+              {(draft || pending) && missingSalary.length > 0 && (
                 <div className="mb-4">
                   <Alert kind="info">
                     <strong className="font-semibold">
@@ -182,6 +255,90 @@ export default function PayrollRunPage() {
                 <p className="text-sm text-slate-600">
                   {run.totals.employees} payslips, net pay {money(run.totals.netPay)} in total.
                 </p>
+              </Modal>
+              <Modal
+                open={confirm === "submit"}
+                onClose={() => setConfirm(null)}
+                title={`Submit ${monthLabel(run.year, run.month)} for approval?`}
+                description="The payroll is locked and the other HR admins are emailed to review it. One of them has to approve it before payslips go out."
+                footer={
+                  <>
+                    <Button variant="secondary" onClick={() => setConfirm(null)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      loading={busy === "submit"}
+                      onClick={() =>
+                        action("submit", () => api(`/payroll/runs/${id}/submit`, { method: "POST" }), "Submitted for approval")
+                      }
+                    >
+                      Submit for approval
+                    </Button>
+                  </>
+                }
+              >
+                <p className="text-sm text-slate-600">
+                  {run.totals.employees} payslips, net pay {money(run.totals.netPay)} in total.
+                </p>
+              </Modal>
+              <Modal
+                open={confirm === "approve"}
+                onClose={() => setConfirm(null)}
+                title={`Approve ${monthLabel(run.year, run.month)}?`}
+                description="The payroll is finalized, payslips are locked and each employee is emailed that theirs is ready. This can't be undone."
+                footer={
+                  <>
+                    <Button variant="secondary" onClick={() => setConfirm(null)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      loading={busy === "approve"}
+                      onClick={() =>
+                        action("approve", () => api(`/payroll/runs/${id}/approve`, { method: "POST" }), "Payroll approved; payslips sent")
+                      }
+                    >
+                      Approve and send payslips
+                    </Button>
+                  </>
+                }
+              >
+                <p className="text-sm text-slate-600">
+                  Submitted by {run.submittedBy}. {run.totals.employees} payslips, net pay {money(run.totals.netPay)} in total.
+                </p>
+              </Modal>
+              <Modal
+                open={confirm === "sendBack"}
+                onClose={() => setConfirm(null)}
+                title="Send back to draft?"
+                description={`${run.submittedBy} is emailed your note and can change the payroll and submit it again.`}
+                footer={
+                  <>
+                    <Button variant="secondary" onClick={() => setConfirm(null)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="danger"
+                      loading={busy === "sendBack"}
+                      disabled={!note.trim()}
+                      onClick={() =>
+                        action(
+                          "sendBack",
+                          async () => {
+                            await api(`/payroll/runs/${id}/send-back`, { method: "POST", body: { note: note.trim() } });
+                            setNote("");
+                          },
+                          "Sent back to draft",
+                        )
+                      }
+                    >
+                      Send back
+                    </Button>
+                  </>
+                }
+              >
+                <Field label="What needs to change?" required>
+                  <Textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} autoFocus />
+                </Field>
               </Modal>
               <Modal
                 open={confirm === "delete"}

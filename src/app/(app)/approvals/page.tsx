@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useApi } from "@/lib/api";
 import type { ApprovalOverlap, LeaveRequest } from "@/lib/types";
-import { DecisionButtons, DecisionDialog, LeaveRequestTable, type Decision } from "@/components/leave";
+import { DecisionButtons, DecisionDialog, LeaveRequestTable, stepProgress, type Decision } from "@/components/leave";
 import { Card, DataState, EmptyState, PageHeader } from "@/components/ui";
 import { useSession } from "@/components/session";
 
@@ -14,6 +14,22 @@ export default function ApprovalsPage() {
   const overlaps = useApi<ApprovalOverlap[]>("/leave-calendar/approval-overlaps");
   const othersOff = new Map(overlaps.data?.map((o) => [o.requestId, o.others]));
   const [decision, setDecision] = useState<Decision | null>(null);
+  // HR also sees requests still waiting on a manager; they can approve those too (and it completes them).
+  const mine = pending.data?.filter((r) => r.awaitingYou !== false);
+  const earlier = pending.data?.filter((r) => r.awaitingYou === false) ?? [];
+  const table = (data: LeaveRequest[]) => (
+    <LeaveRequestTable
+      requests={data}
+      showEmployee
+      actions={(r) => <DecisionButtons request={r} onDecide={setDecision} />}
+      details={(r) => (
+        <>
+          {stepProgress(r) && <p className="mt-1 font-medium text-slate-600">{stepProgress(r)}</p>}
+          <AlsoOff others={othersOff.get(r.id)} />
+        </>
+      )}
+    />
+  );
 
   return (
     <>
@@ -21,27 +37,32 @@ export default function ApprovalsPage() {
         title="Approvals"
         description={
           isHr
-            ? "Pending leave requests you can decide on. As HR admin you can approve anyone's request except your own."
-            : "Pending leave requests from your direct reports."
+            ? "Leave requests waiting for an HR admin. You can also approve requests still waiting on a manager; an HR approval completes the request."
+            : "Leave requests waiting for your approval, from your team."
         }
       />
-      <Card bodyClassName="pb-0">
+      <Card title={isHr ? "Needs your approval" : undefined} bodyClassName="pb-0">
         <DataState
-          data={pending.data}
+          data={mine}
           error={pending.error}
           empty={<EmptyState title="You're all caught up">No leave requests are waiting for you.</EmptyState>}
         >
-          {(data) => (
-            <LeaveRequestTable
-              requests={data}
-              showEmployee
-              actions={(r) => <DecisionButtons request={r} onDecide={setDecision} />}
-              details={(r) => <AlsoOff others={othersOff.get(r.id)} />}
-            />
-          )}
+          {table}
         </DataState>
       </Card>
+      {isHr && earlier.length > 0 && (
+        <div className="mt-6">
+          <Card
+            title="Waiting on a manager"
+            description="These are at an earlier approval step. You can still approve or reject them."
+            bodyClassName="pb-0"
+          >
+            {table(earlier)}
+          </Card>
+        </div>
+      )}
       <DecisionDialog
+        isHr={isHr}
         decision={decision}
         onClose={() => setDecision(null)}
         onDone={() => {

@@ -6,8 +6,9 @@ import type { LineCategory, PayslipDetail, PayslipLine, RunStatus } from "@/lib/
 import { Badge, Button, cx } from "./ui";
 
 export function RunStatusBadge({ status }: { status: RunStatus }) {
-  const tone = status === "PAID" ? "green" : status === "FINALIZED" ? "indigo" : "yellow";
-  return <Badge tone={tone}>{status === "DRAFT" ? "Draft" : status === "FINALIZED" ? "Finalized" : "Paid"}</Badge>;
+  const tone = status === "PAID" ? "green" : status === "FINALIZED" ? "indigo" : status === "PENDING_APPROVAL" ? "blue" : "yellow";
+  const label = { DRAFT: "Draft", PENDING_APPROVAL: "Awaiting approval", FINALIZED: "Finalized", PAID: "Paid" }[status];
+  return <Badge tone={tone}>{label}</Badge>;
 }
 
 /** Only the last 4 digits of a bank account, like the PDF. */

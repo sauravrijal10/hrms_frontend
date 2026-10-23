@@ -176,6 +176,34 @@ export interface LeaveRequest {
   decisionComment: string | null;
   decidedAt: string | null;
   createdAt: string;
+  /** The approval chain, in order. */
+  steps: ApprovalStep[];
+  /** Only in the approval inbox: true when the current step is the viewer's. */
+  awaitingYou: boolean | null;
+}
+
+/** Who approves a step. Company chains always use them in this order. */
+export type ApprovalStepKind = "REPORTING_MANAGER" | "MANAGERS_MANAGER" | "HR_ADMIN";
+export const APPROVAL_STEP_KINDS: ApprovalStepKind[] = ["REPORTING_MANAGER", "MANAGERS_MANAGER", "HR_ADMIN"];
+export type ApprovalStepStatus = "WAITING" | "PENDING" | "APPROVED" | "REJECTED" | "SKIPPED";
+
+export interface ApprovalStep {
+  order: number;
+  kind: ApprovalStepKind;
+  approverId: string | null;
+  approverName: string | null;
+  /** No named approver: any HR admin decides this step. */
+  hrAdmins: boolean;
+  status: ApprovalStepStatus;
+  decidedById: string | null;
+  decidedByName: string | null;
+  decidedAt: string | null;
+  comment: string | null;
+}
+
+/** GET/PUT /leave-approval-chain */
+export interface ApprovalChain {
+  steps: ApprovalStepKind[];
 }
 
 /** GET /leave-calendar: who is off between `from` and `to`. */
@@ -281,7 +309,7 @@ export type ComponentKind = "EARNING" | "DEDUCTION";
 export type Calculation = "FIXED" | "PERCENT_OF_BASIC";
 export type ContributionBase = "BASIC" | "GROSS";
 export type FilingStatus = "SINGLE" | "MARRIED";
-export type RunStatus = "DRAFT" | "FINALIZED" | "PAID";
+export type RunStatus = "DRAFT" | "PENDING_APPROVAL" | "FINALIZED" | "PAID";
 export type LineCategory = "EARNING" | "DEDUCTION" | "EMPLOYEE_CONTRIBUTION" | "EMPLOYER_CONTRIBUTION" | "TAX";
 
 /** A tax band: yearly income up to `upTo` (null = everything above) is taxed at `rate` %. */
@@ -295,6 +323,8 @@ export interface PayrollSettings {
   marriedSlabsEnabled: boolean;
   singleSlabs: TaxSlabInput[];
   marriedSlabs: TaxSlabInput[];
+  /** A second HR admin must approve a run before it is finalized. */
+  finalizeApprovalRequired: boolean;
 }
 
 export interface PayComponent {
@@ -370,6 +400,13 @@ export interface PayrollRunSummary {
   finalizedAt: string | null;
   paidBy: string | null;
   paidAt: string | null;
+  /** Set while the run waits for a second HR admin's approval. */
+  submittedBy: string | null;
+  submittedAt: string | null;
+  /** The last time it was sent back to draft. */
+  returnedBy: string | null;
+  returnedAt: string | null;
+  returnNote: string | null;
 }
 
 export interface PayslipSummary {

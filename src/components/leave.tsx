@@ -3,8 +3,8 @@
 import { useState, type ReactNode } from "react";
 import { api, toApiError, type ApiError } from "@/lib/api";
 import { formatDateRange, formatDateTime, formatDays, pluralDays } from "@/lib/format";
-import type { LeaveBalance, LeaveRequest } from "@/lib/types";
-import { Badge, Button, Field, FormError, Modal, StatusBadge, Table, Td, Textarea, Th } from "./ui";
+import type { ApprovalStep, ApprovalStepKind, LeaveBalance, LeaveRequest } from "@/lib/types";
+import { Badge, Button, cx, Field, FormError, Modal, StatusBadge, Table, Td, Textarea, Th } from "./ui";
 import { useToast } from "./session";
 
 // ---------------------------------------------------------------- balances
@@ -103,14 +103,20 @@ export function LeaveRequestTable({
             </Td>
             <Td className="max-w-xs min-w-48 text-xs text-slate-500">
               {r.reason && <p className="text-slate-700">{r.reason}</p>}
-              {r.status === "PENDING" && r.approverName && <p className="mt-0.5">Approver: {r.approverName}</p>}
-              {r.decidedByName && (
-                <p className="mt-0.5">
-                  {r.status === "CANCELLED" ? "Cancelled" : "Decided"} by {r.decidedByName}
-                  {r.decidedAt && ` · ${formatDateTime(r.decidedAt)}`}
-                </p>
+              {r.steps?.length ? (
+                <ApprovalSteps steps={r.steps} />
+              ) : (
+                <>
+                  {r.status === "PENDING" && r.approverName && <p className="mt-0.5">Approver: {r.approverName}</p>}
+                  {r.decidedByName && r.status !== "CANCELLED" && (
+                    <p className="mt-0.5">
+                      Decided by {r.decidedByName}
+                      {r.decidedAt && ` · ${formatDateTime(r.decidedAt)}`}
+                    </p>
+                  )}
+                  {r.decisionComment && <p className="mt-0.5 italic">“{r.decisionComment}”</p>}
+                </>
               )}
-              {r.decisionComment && <p className="mt-0.5 italic">“{r.decisionComment}”</p>}
               {details?.(r)}
             </Td>
             {actions && (
@@ -125,6 +131,67 @@ export function LeaveRequestTable({
   );
 }
 
+// ---------------------------------------------------------------- approval steps
+
+export const STEP_KIND_LABELS: Record<ApprovalStepKind, string> = {
+  REPORTING_MANAGER: "Reporting manager",
+  MANAGERS_MANAGER: "Manager's manager",
+  HR_ADMIN: "HR admin",
+};
+
+/** Who decides a step: the named person, or HR admins when nobody is named. */
+export function stepApprover(s: ApprovalStep): string {
+  if (!s.hrAdmins) return s.approverName ?? "—";
+  return s.kind === "HR_ADMIN" ? "HR admins" : "HR admins (no one in this role)";
+}
+
+const STEP_DOT: Record<ApprovalStep["status"], string> = {
+  APPROVED: "bg-emerald-500",
+  REJECTED: "bg-red-500",
+  PENDING: "bg-amber-400 ring-4 ring-amber-100",
+  WAITING: "bg-slate-300",
+  SKIPPED: "bg-slate-200",
+};
+
+/** The approval chain of one request: who approved, who it is waiting on, and what comes next. */
+export function ApprovalSteps({ steps }: { steps: ApprovalStep[] }) {
+  return (
+    <ol className="mt-1 space-y-1">
+      {steps.map((s) => (
+        <li key={s.order} className={cx("flex gap-2", s.status === "SKIPPED" && "text-slate-400")}>
+          <span className={cx("mt-1.5 size-2 shrink-0 rounded-full", STEP_DOT[s.status])} aria-hidden />
+          <div>
+            <p>
+              <span className="font-medium text-slate-700">{STEP_KIND_LABELS[s.kind]}</span>
+              {" · "}
+              {s.status === "APPROVED" || s.status === "REJECTED" ? (
+                <>
+                  {s.status === "APPROVED" ? "Approved" : "Rejected"} by {s.decidedByName}
+                  {s.decidedAt && ` · ${formatDateTime(s.decidedAt)}`}
+                </>
+              ) : s.status === "PENDING" ? (
+                <>Waiting for {stepApprover(s)}</>
+              ) : s.status === "WAITING" ? (
+                <>Then {stepApprover(s)}</>
+              ) : (
+                <>{stepApprover(s)} · not needed</>
+              )}
+            </p>
+            {s.comment && <p className="italic">“{s.comment}”</p>}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** "Step 1 of 2" style progress for a pending request, or null when there is only one step. */
+export function stepProgress(r: LeaveRequest): string | null {
+  if (!r.steps || r.steps.length < 2 || r.status !== "PENDING") return null;
+  const current = r.steps.find((s) => s.status === "PENDING");
+  return current ? `Step ${current.order} of ${r.steps.length}` : null;
+}
+
 // ---------------------------------------------------------------- approve / reject
 
 export type Decision = { request: LeaveRequest; action: "approve" | "reject" };
@@ -134,10 +201,13 @@ export function DecisionDialog({
   decision,
   onClose,
   onDone,
+  isHr = false,
 }: {
   decision: Decision | null;
   onClose: () => void;
   onDone: () => void;
+  /** HR's approval completes the request at any step. */
+  isHr?: boolean;
 }) {
   const toast = useToast();
   const [comment, setComment] = useState("");
@@ -155,11 +225,18 @@ export function DecisionDialog({
     setSaving(true);
     setError(null);
     try {
-      await api(`/leave-requests/${decision.request.id}/${decision.action}`, {
+      const updated = await api<LeaveRequest>(`/leave-requests/${decision.request.id}/${decision.action}`, {
         method: "POST",
         body: { comment: comment.trim() || null },
       });
-      toast(decision.action === "approve" ? "Leave approved" : "Leave rejected");
+      const next = updated.steps?.find((s) => s.status === "PENDING");
+      toast(
+        decision.action === "reject"
+          ? "Leave rejected"
+          : updated.status === "PENDING" && next
+            ? `Approved. Sent to ${stepApprover(next)} for the next approval.`
+            : "Leave approved",
+      );
       setComment("");
       onDone();
     } catch (e) {
@@ -171,6 +248,8 @@ export function DecisionDialog({
 
   const r = decision?.request;
   const reject = decision?.action === "reject";
+  const later = r?.steps?.filter((s) => s.status === "WAITING") ?? [];
+  const finalByHr = isHr && later.length > 0;
   return (
     <Modal
       open={!!decision}
@@ -199,6 +278,19 @@ export function DecisionDialog({
         {r?.reason && (
           <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
             <span className="font-medium">Reason:</span> {r.reason}
+          </p>
+        )}
+        {r && r.steps?.length > 1 && (
+          <div className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <p className="font-medium text-slate-700">Approval steps</p>
+            <ApprovalSteps steps={r.steps} />
+          </div>
+        )}
+        {!reject && later.length > 0 && (
+          <p className="text-sm text-slate-600">
+            {finalByHr
+              ? "As an HR admin, your approval completes the request. The remaining steps will be skipped."
+              : `After you approve, it goes to ${stepApprover(later[0])} for the next approval.`}
           </p>
         )}
         <FormError error={error} />
