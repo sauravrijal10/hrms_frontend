@@ -5,6 +5,7 @@ import { api, toApiError, useApi, type ApiError } from "@/lib/api";
 import { blankToNull, formatDate, humanize, roleLabel } from "@/lib/format";
 import type { Employee } from "@/lib/types";
 import { postAuth } from "@/components/AuthForm";
+import { EmployeeAssetsCard } from "@/components/assets";
 import { useSession, useToast } from "@/components/session";
 import {
   Alert,
@@ -37,6 +38,7 @@ export default function ProfilePage() {
                 <>
                   <ProfileDetails employee={e} email={user.email} />
                   <ContactForm employee={e} onSaved={me.reload} />
+                  <EmployeeAssetsCard employee={e} canManage={false} self />
                 </>
               )}
             </DataState>

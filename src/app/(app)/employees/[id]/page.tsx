@@ -9,6 +9,7 @@ import type { Employee, LeaveBalance } from "@/lib/types";
 import { useSession, useToast } from "@/components/session";
 import { EmployeeForm } from "@/components/EmployeeForm";
 import { SalaryCard } from "@/components/SalaryCard";
+import { EmployeeAssetsCard } from "@/components/assets";
 import {
   Avatar,
   Badge,
@@ -71,6 +72,7 @@ export default function EmployeePage() {
               <div className="space-y-6">
                 <EmployeeDetails employee={e} fullAccess={isHr || e.id === user.employeeId} />
                 {isHr && <SalaryCard employeeId={e.id} employeeName={e.fullName} />}
+                {(isHr || e.managerId === user.employeeId) && <EmployeeAssetsCard employee={e} canManage={isHr} />}
                 <Balances employeeId={e.id} canAdjust={isHr} />
               </div>
             </>

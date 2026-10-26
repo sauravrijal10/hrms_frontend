@@ -430,6 +430,8 @@ export interface PayrollRunDetail {
   payslips: PayslipSummary[];
   /** Employees left out because they have no salary for that month. */
   missingSalary: string[];
+  /** Leavers on this payroll who still hold company items, e.g. "Pay Leaver (2 items)". */
+  unreturnedAssets: string[];
 }
 
 export interface PayslipLine {
@@ -481,4 +483,75 @@ export interface MyPayslip {
   gross: number;
   netPay: number;
   runStatus: RunStatus;
+}
+
+// ---------------------------------------------------------------- assets
+
+export type AssetStatus = "AVAILABLE" | "ASSIGNED" | "IN_REPAIR" | "RETIRED" | "LOST";
+export type AssetCondition = "NEW" | "GOOD" | "FAIR" | "DAMAGED";
+
+/** Who has an asset now. leaving: they have a last working day, so it must come back. */
+export interface AssetHolder {
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  assignedOn: string;
+  expectedReturn: string | null;
+  exitDate: string | null;
+  leaving: boolean;
+}
+
+export interface Asset {
+  id: string;
+  assetTag: string;
+  name: string;
+  category: string;
+  serialNumber: string | null;
+  description: string | null;
+  purchaseDate: string | null;
+  purchaseCost: number | null;
+  status: AssetStatus;
+  condition: AssetCondition;
+  holder: AssetHolder | null;
+}
+
+export interface AssetAssignment {
+  id: string;
+  assetId: string;
+  assetTag: string;
+  assetName: string;
+  category: string;
+  serialNumber: string | null;
+  employeeId: string;
+  employeeName: string;
+  assignedOn: string;
+  assignedBy: string | null;
+  issueCondition: AssetCondition;
+  issueNotes: string | null;
+  expectedReturn: string | null;
+  returnedOn: string | null;
+  receivedBy: string | null;
+  returnCondition: AssetCondition | null;
+  returnNotes: string | null;
+}
+
+export interface AssetDetail {
+  asset: Asset;
+  history: AssetAssignment[];
+}
+
+export interface EmployeeAssets {
+  exitDate: string | null;
+  current: AssetAssignment[];
+  past: AssetAssignment[];
+}
+
+/** A leaver who still has company items. */
+export interface AssetsDueBack {
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  status: EmployeeStatus;
+  exitDate: string | null;
+  items: AssetAssignment[];
 }

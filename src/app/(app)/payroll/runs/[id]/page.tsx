@@ -78,7 +78,7 @@ export default function PayrollRunPage() {
         ← Payroll
       </Link>
       <DataState data={detail.data} error={detail.error}>
-        {({ run, payslips, missingSalary }) => {
+        {({ run, payslips, missingSalary, unreturnedAssets }) => {
           const draft = run.status === "DRAFT";
           const pending = run.status === "PENDING_APPROVAL";
           const iSubmitted = pending && run.submittedBy?.toLowerCase() === user.email.toLowerCase();
@@ -202,6 +202,19 @@ export default function PayrollRunPage() {
                     and {missingSalary.length === 1 ? "is" : "are"} left out: {missingSalary.slice(0, 8).join(", ")}
                     {missingSalary.length > 8 && ` and ${missingSalary.length - 8} more`}. Set salaries on their employee page,
                     then recalculate.
+                  </Alert>
+                </div>
+              )}
+
+              {unreturnedAssets.length > 0 && (
+                <div className="mb-4">
+                  <Alert>
+                    <strong className="font-semibold">Company items not returned yet:</strong> {unreturnedAssets.join(", ")}.
+                    Collect them (or record them as lost) before the final settlement. See{" "}
+                    <Link href="/assets" className="font-medium underline">
+                      Assets
+                    </Link>
+                    .
                   </Alert>
                 </div>
               )}
